@@ -3,6 +3,7 @@ RAG (Retrieval-Augmented Generation) system for answering questions about PDFs.
 """
 import os
 import re
+import json
 from typing import List, Dict, Optional, Tuple
 from openai import OpenAI
 from backend.vector_store import VectorStore
@@ -335,35 +336,80 @@ Answer the question based on the context above. Make sure to cite ALL relevant s
         Returns:
             Tuple of (question_type, recommended_chunk_count)
         """
-        question_lower = question.lower()
+        question_lower = question.lower().strip()
         
-        # Summary questions
+        # PRIORITY 1: Check if question is about the document as a whole
+        # These questions need comprehensive retrieval regardless of wording
+        document_about_patterns = [
+            'this pdf', 'this document', 'the pdf', 'the document',
+            'pdf about', 'document about', 'about this', 'about the pdf',
+            'what is this', 'what\'s this', 'what is the pdf', 'what\'s the pdf',
+            'tell me about', 'describe this', 'explain this pdf'
+        ]
+        is_about_document = any(pattern in question_lower for pattern in document_about_patterns)
+        
+        # PRIORITY 2: Summary/Overview questions (including document-about questions)
         summary_keywords = ['summary', 'summarize', 'overview', 'main points', 'key findings', 
                            'conclusion', 'what is the gist', 'briefly explain']
-        if any(keyword in question_lower for keyword in summary_keywords):
+        if is_about_document or any(keyword in question_lower for keyword in summary_keywords):
             return ('Summary', 40)  # 30-50, use 40 as middle
         
-        # Procedure/Step questions
+        # PRIORITY 3: Procedure/Step questions
         procedure_keywords = ['step', 'steps', 'process', 'procedure', 'how to', 'how do', 
                              'method', 'way', 'list', 'sequence', 'order', 'workflow']
         if any(keyword in question_lower for keyword in procedure_keywords):
             return ('Procedure', 40)  # 30-50, use 40 as middle
         
-        # Compare/Analyze questions
+        # PRIORITY 4: Compare/Analyze questions
         compare_keywords = ['compare', 'difference', 'different', 'versus', 'vs', 'vs.', 
                            'similar', 'similarity', 'analyze', 'analysis', 'contrast', 
                            'relationship', 'between']
         if any(keyword in question_lower for keyword in compare_keywords):
             return ('Compare/Analyze', 30)  # 20-40, use 30 as middle
         
-        # Fact questions (simple factual queries)
+        # PRIORITY 5: Fact questions (simple factual queries)
+        # Fact questions are:
+        # 1. Ask about a specific concept/term/fact (not the document as a whole)
+        # 2. Require direct answer, not multi-step reasoning or comparison
+        # 3. NOT about the document itself (already handled above)
+        # 4. Use fact-seeking keywords
+        
         fact_keywords = ['what is', 'what are', 'who is', 'when', 'where', 'which', 
                         'define', 'definition', 'meaning']
-        # Only classify as fact if it's a simple question (not too long, no complex keywords)
-        if any(keyword in question_lower for keyword in fact_keywords) and len(question.split()) < 10:
+        
+        # Exclude patterns that indicate non-fact questions
+        non_fact_patterns = [
+            'this pdf', 'this document', 'the pdf', 'the document',  # About document
+            'difference', 'compare', 'similar', 'versus', 'vs',  # Comparison
+            'how to', 'how do', 'steps', 'process', 'procedure',  # Procedure
+            'why', 'explain why', 'reason',  # Analysis/explanation
+            'relationship', 'between', 'analyze'  # Analysis
+        ]
+        
+        has_fact_keyword = any(keyword in question_lower for keyword in fact_keywords)
+        is_non_fact = any(pattern in question_lower for pattern in non_fact_patterns)
+        
+        # Fact question criteria:
+        # 1. Has fact keyword
+        # 2. NOT about document (already checked above)
+        # 3. NOT a non-fact question type (comparison, procedure, analysis)
+        # 4. Asks about a specific concept (not "what is this" or "what is the pdf")
+        asks_about_specific_concept = (
+            ('what is' in question_lower and 'this' not in question_lower and 'the pdf' not in question_lower) or
+            ('what are' in question_lower and 'this' not in question_lower) or
+            any(kw in question_lower for kw in ['when', 'where', 'who is', 'which', 'define', 'definition'])
+        )
+        
+        if has_fact_keyword and not is_about_document and not is_non_fact and asks_about_specific_concept:
             return ('Fact', 8)  # 5-10, use 8 as middle
         
-        # Default
+        # PRIORITY 6: Default - use conservative retrieval for unknown questions
+        # If question contains "what is" or similar but doesn't match above, 
+        # it might need more context, so use more chunks
+        if has_fact_keyword and not is_about_document:
+            return ('Default', 30)  # More chunks for safety
+        
+        # Default for all other questions
         return ('Default', 25)  # 20-30, use 25 as middle
     
     def ask_question(self, question: str, n_results: int = None) -> Dict[str, any]:
@@ -391,4 +437,165 @@ Answer the question based on the context above. Make sure to cite ALL relevant s
         result = self.generate_answer(question, relevant_chunks, question_type=question_type)
         
         return result
+    
+    def generate_quiz_questions(self, num_questions: int = 10) -> List[Dict]:
+        """
+        Generate multiple choice quiz questions based on the uploaded PDFs.
+        
+        Args:
+            num_questions: Number of questions to generate (default: 10)
+            
+        Returns:
+            List of question dictionaries, each containing:
+            - question: The question text
+            - options: List of 4 options (A, B, C, D)
+            - correct_answer: The correct option letter (A, B, C, or D)
+            - explanation: Explanation of why the answer is correct
+        """
+        # Retrieve diverse chunks from the vector store
+        # We'll retrieve more chunks to ensure good coverage
+        total_docs = self.vector_store.get_collection_size()
+        if total_docs == 0:
+            raise ValueError("No documents uploaded. Please upload PDFs first.")
+        
+        # Retrieve a good sample of chunks (50-100 chunks for diverse questions)
+        n_chunks = min(80, total_docs * 2)  # Get up to 80 chunks or 2x total docs
+        
+        # Get random or diverse chunks by querying with a general question
+        # We'll use multiple queries to get diverse content
+        diverse_chunks = []
+        query_terms = ["what", "how", "definition", "explain", "describe", "important", "key", "main"]
+        
+        for term in query_terms[:5]:  # Use first 5 terms
+            chunks = self.retrieve_relevant_chunks(term, n_results=min(15, n_chunks // 5))
+            diverse_chunks.extend(chunks)
+        
+        # Deduplicate by text content
+        seen_texts = set()
+        unique_chunks = []
+        for chunk in diverse_chunks:
+            text = chunk['text'][:100]  # Use first 100 chars as key
+            if text not in seen_texts:
+                seen_texts.add(text)
+                unique_chunks.append(chunk)
+        
+        if not unique_chunks:
+            raise ValueError("Could not retrieve enough content from PDFs to generate questions.")
+        
+        # Build context from unique chunks
+        context_parts = []
+        for i, chunk in enumerate(unique_chunks[:50], 1):  # Limit to 50 chunks for token efficiency
+            metadata = chunk['metadata']
+            page = metadata.get('page', 'Unknown')
+            pdf_filename = metadata.get('pdf_filename', 'Unknown')
+            context_parts.append(f"[Content {i} - {pdf_filename}, Page {page}]: {chunk['text']}")
+        
+        context = "\n\n".join(context_parts)
+        
+        # Create prompt for generating quiz questions
+        prompt = f"""You are an educational assistant that creates multiple choice quiz questions based on PDF content.
+
+Your task: Generate exactly {num_questions} high-quality multiple choice questions based on the following PDF content.
+
+REQUIREMENTS:
+1. Each question should test understanding of important concepts from the PDFs
+2. Each question must have exactly 4 options labeled A, B, C, D
+3. Only ONE option should be correct
+4. The incorrect options (distractors) should be plausible but clearly wrong
+5. Questions should cover different topics and difficulty levels
+6. Format your response as a JSON array with this exact structure:
+[
+  {{
+    "question": "Question text here?",
+    "options": {{
+      "A": "Option A text",
+      "B": "Option B text",
+      "C": "Option C text",
+      "D": "Option D text"
+    }},
+    "correct_answer": "A",
+    "explanation": "Detailed explanation of why the correct answer is right and why others are wrong"
+  }},
+  ...
+]
+
+IMPORTANT:
+- Return ONLY valid JSON, no additional text before or after
+- Use double quotes for JSON strings
+- The correct_answer must be exactly "A", "B", "C", or "D"
+- Make explanations clear and educational
+- Base questions ONLY on the provided content
+
+PDF Content:
+{context}
+
+Generate {num_questions} multiple choice questions now:"""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.llm_model,
+                messages=[
+                    {"role": "system", "content": "You are an educational assistant that creates quiz questions. Always return valid JSON arrays only, no additional text."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.8,  # Higher temperature for more diverse questions
+                max_tokens=3000  # More tokens for multiple questions
+            )
+        except Exception as e:
+            raise Exception(f"Error generating quiz questions: {str(e)}")
+        
+        response_text = response.choices[0].message.content.strip()
+        
+        # Extract JSON from response (handle cases where LLM adds markdown code blocks)
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        # Parse JSON
+        try:
+            questions = json.loads(response_text)
+            
+            # Validate and format questions
+            formatted_questions = []
+            for i, q in enumerate(questions[:num_questions], 1):  # Limit to requested number
+                if not isinstance(q, dict):
+                    continue
+                
+                # Ensure all required fields exist
+                if 'question' not in q or 'options' not in q or 'correct_answer' not in q:
+                    continue
+                
+                # Validate correct_answer
+                correct = str(q['correct_answer']).upper()
+                if correct not in ['A', 'B', 'C', 'D']:
+                    continue
+                
+                # Ensure options is a dict with A, B, C, D
+                options = q.get('options', {})
+                if not isinstance(options, dict) or not all(k in options for k in ['A', 'B', 'C', 'D']):
+                    continue
+                
+                formatted_questions.append({
+                    'question': str(q['question']),
+                    'options': {
+                        'A': str(options['A']),
+                        'B': str(options['B']),
+                        'C': str(options['C']),
+                        'D': str(options['D'])
+                    },
+                    'correct_answer': correct,
+                    'explanation': str(q.get('explanation', 'No explanation provided.'))
+                })
+            
+            if not formatted_questions:
+                raise ValueError("Could not parse any valid questions from the response.")
+            
+            return formatted_questions
+            
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse quiz questions as JSON: {str(e)}. Response: {response_text[:200]}")
 

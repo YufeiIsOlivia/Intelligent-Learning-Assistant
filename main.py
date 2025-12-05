@@ -188,6 +188,42 @@ async def clear_documents():
         raise HTTPException(status_code=500, detail=f"Error clearing documents: {str(e)}")
 
 
+@app.post("/api/generate-quiz")
+async def generate_quiz(data: dict = None):
+    """
+    Generate quiz questions based on uploaded PDFs.
+    
+    Args:
+        data: Optional dictionary with 'num_questions' key (default: 10)
+        
+    Returns:
+        JSON response with quiz questions
+    """
+    num_questions = 10
+    if data and 'num_questions' in data:
+        try:
+            num_questions = int(data['num_questions'])
+            if num_questions < 1 or num_questions > 20:
+                num_questions = 10  # Default to 10 if invalid
+        except (ValueError, TypeError):
+            num_questions = 10
+    
+    try:
+        rag = get_rag_system()
+        questions = rag.generate_quiz_questions(num_questions=num_questions)
+        
+        return JSONResponse({
+            "status": "success",
+            "questions": questions,
+            "total_questions": len(questions)
+        })
+    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating quiz: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))

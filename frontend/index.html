@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF RAG Q&A System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,36 +15,67 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Kalam', cursive;
+            background: #ffffff;
             min-height: 100vh;
             padding: 20px;
+            position: relative;
+        }
+
+        /* Hand-drawn border effect */
+        .hand-drawn-border {
+            position: relative;
+            border: 3px solid #333;
+            background: white;
+        }
+
+        .hand-drawn-border::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px solid #333;
+            border-radius: 0;
+            transform: rotate(0.5deg);
+            z-index: -1;
+            opacity: 0.3;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
             overflow: hidden;
+            position: relative;
+            transform: rotate(-0.2deg);
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: white;
+            color: #333;
             padding: 30px;
             text-align: center;
+            border-bottom: none;
+            position: relative;
         }
 
         .header h1 {
-            font-size: 2.5em;
+            font-size: 2.8em;
             margin-bottom: 10px;
+            font-weight: 700;
+            transform: rotate(-0.5deg);
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
         }
 
         .header p {
-            opacity: 0.9;
-            font-size: 1.1em;
+            font-size: 1.2em;
+            transform: rotate(0.3deg);
+            color: #555;
         }
 
         .content {
@@ -53,37 +87,64 @@
         }
 
         .section-title {
-            font-size: 1.5em;
+            font-size: 1.8em;
             color: #333;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 3px solid #333;
+            font-weight: 700;
+            transform: rotate(-0.3deg);
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: '✏️';
+            margin-left: 10px;
+            font-size: 0.8em;
         }
 
         .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 10px;
+            border: 4px dashed #333;
+            border-radius: 0;
             padding: 40px;
             text-align: center;
-            background: #f8f9ff;
+            background: #fafafa;
             transition: all 0.3s;
             cursor: pointer;
+            position: relative;
+            transform: rotate(0.2deg);
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 2px dashed #666;
+            transform: rotate(-0.3deg);
+            opacity: 0.3;
         }
 
         .upload-area:hover {
-            background: #f0f2ff;
-            border-color: #764ba2;
+            background: #f5f5f5;
+            transform: rotate(-0.2deg) scale(1.01);
         }
 
         .upload-area.dragover {
-            background: #e8ebff;
-            border-color: #764ba2;
-            transform: scale(1.02);
+            background: #f0f0f0;
+            transform: rotate(0.5deg) scale(1.02);
+            border-color: #000;
         }
 
         .upload-icon {
-            font-size: 3em;
+            font-size: 3.5em;
             margin-bottom: 20px;
+            transform: rotate(-5deg);
+            display: inline-block;
+            filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.2));
         }
 
         .file-input {
@@ -91,44 +152,71 @@
         }
 
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
+            background: white;
+            color: #333;
+            border: 3px solid #333;
             padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 1em;
+            border-radius: 0;
+            font-size: 1.1em;
             cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
+            transition: all 0.2s;
+            font-weight: 700;
+            font-family: 'Kalam', cursive;
+            position: relative;
+            transform: rotate(-0.5deg);
+            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid #666;
+            transform: rotate(0.3deg);
+            opacity: 0.3;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transform: rotate(0.3deg) translateY(-2px);
+            box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.3);
+            background: #f5f5f5;
+        }
+
+        .btn:active {
+            transform: rotate(0deg) translateY(0);
+            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
         }
 
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
+            transform: rotate(0deg);
         }
 
         .btn-secondary {
-            background: #6c757d;
+            background: white;
+            border-color: #666;
         }
 
         .status {
             margin-top: 20px;
             padding: 15px;
-            border-radius: 8px;
-            background: #e8f5e9;
+            border-radius: 0;
+            background: #f0f8f0;
             color: #2e7d32;
             display: none;
+            border: 3px solid #333;
+            transform: rotate(0.2deg);
+            font-weight: 600;
         }
 
         .status.error {
-            background: #ffebee;
+            background: #fff0f0;
             color: #c62828;
+            border-color: #c62828;
         }
 
         .status.show {
@@ -149,24 +237,31 @@
         .input-group input {
             flex: 1;
             padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1em;
-            transition: border-color 0.3s;
+            border: 3px solid #333;
+            border-radius: 0;
+            font-size: 1.1em;
+            transition: all 0.2s;
+            font-family: 'Kalam', cursive;
+            background: white;
+            transform: rotate(0.2deg);
         }
 
         .input-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #000;
+            transform: rotate(-0.2deg);
+            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
         }
 
         .chat-container {
             margin-top: 20px;
             max-height: 600px;
             overflow-y: auto;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 10px;
+            padding: 15px;
+            background: #fafafa;
+            border: 3px solid #333;
+            border-radius: 0;
+            transform: rotate(0.1deg);
         }
 
         .message {
@@ -180,60 +275,107 @@
         }
 
         .message-question {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #333;
             color: white;
             padding: 15px 20px;
-            border-radius: 15px 15px 15px 5px;
+            border-radius: 0;
             margin-left: 20%;
             margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            border: 3px solid #000;
+            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+            transform: rotate(-0.3deg);
+            position: relative;
+        }
+
+        .message-question::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid #666;
+            transform: rotate(0.2deg);
+            opacity: 0.3;
         }
 
         .message-answer {
             background: white;
             padding: 20px;
-            border-radius: 15px 15px 5px 15px;
+            border-radius: 0;
             margin-right: 20%;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 3px solid #333;
+            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.15);
+            transform: rotate(0.2deg);
+            position: relative;
+        }
+
+        .message-answer::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid #999;
+            transform: rotate(-0.2deg);
+            opacity: 0.2;
         }
 
         .message-label {
-            font-size: 0.75em;
-            opacity: 0.7;
-            margin-bottom: 5px;
-            font-weight: 600;
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            transform: rotate(-0.2deg);
         }
 
         .answer-text {
-            font-size: 1.1em;
-            line-height: 1.8;
+            font-size: 1.15em;
+            line-height: 1.9;
             color: #333;
             margin-bottom: 20px;
+            font-family: 'Kalam', cursive;
         }
 
         .answer-text p {
-            margin-bottom: 12px;
+            margin-bottom: 15px;
+            transform: rotate(0.05deg);
         }
 
         .answer-text h1, .answer-text h2, .answer-text h3 {
             margin-top: 20px;
             margin-bottom: 12px;
-            color: #667eea;
+            color: #333;
+            font-weight: 700;
+            transform: rotate(-0.2deg);
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 4px;
         }
 
         .answer-text ul, .answer-text ol {
-            margin: 12px 0;
-            padding-left: 30px;
+            margin: 15px 0;
+            padding-left: 35px;
+            transform: rotate(0.1deg);
         }
 
         .answer-text li {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .answer-text li::marker {
+            font-weight: 700;
         }
 
         .answer-text strong {
-            color: #764ba2;
-            font-weight: 600;
+            color: #000;
+            font-weight: 700;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
         }
 
         .citations {
@@ -243,21 +385,36 @@
         }
 
         .citations-title {
-            font-weight: 600;
-            color: #667eea;
+            font-weight: 700;
+            color: #333;
             margin-bottom: 15px;
+            font-size: 1.2em;
+            transform: rotate(-0.2deg);
+            text-decoration: underline;
         }
 
         .citation-item {
-            background: white;
+            background: #fafafa;
             padding: 15px;
             margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 3px solid #764ba2;
+            border-radius: 0;
+            border: 2px solid #333;
+            border-left: 4px solid #000;
+            transform: rotate(0.1deg);
+            position: relative;
+        }
+
+        .citation-item::before {
+            content: '📌';
+            position: absolute;
+            left: -8px;
+            top: 10px;
+            font-size: 1.2em;
         }
 
         .citation-item strong {
-            color: #667eea;
+            color: #000;
+            font-weight: 700;
         }
 
         .loading {
@@ -277,14 +434,172 @@
         .file-info {
             margin-top: 15px;
             padding: 10px;
-            background: #e8f5e9;
-            border-radius: 5px;
+            background: #f0f8f0;
+            border-radius: 0;
             color: #2e7d32;
             display: none;
+            border: 2px solid #333;
+            transform: rotate(-0.1deg);
+            font-weight: 600;
         }
 
         .file-info.show {
             display: block;
+        }
+
+        /* Quiz Section Styles */
+        .quiz-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .quiz-container.show {
+            display: block;
+        }
+
+        .quiz-question {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 4px solid #333;
+            border-radius: 0;
+            transform: rotate(0.1deg);
+            box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .quiz-question::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 2px solid #666;
+            transform: rotate(-0.2deg);
+            opacity: 0.2;
+        }
+
+        .quiz-question-number {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+            transform: rotate(-0.3deg);
+            text-decoration: underline;
+        }
+
+        .quiz-question-text {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            transform: rotate(0.1deg);
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-option {
+            background: white;
+            border: 3px solid #333;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.1em;
+            font-family: 'Kalam', cursive;
+            transform: rotate(0.1deg);
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .quiz-option::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid #999;
+            transform: rotate(-0.1deg);
+            opacity: 0.2;
+        }
+
+        .quiz-option:hover:not(.disabled) {
+            background: #f5f5f5;
+            transform: rotate(-0.2deg) translateX(5px);
+            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .quiz-option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .quiz-option.correct {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+            color: #1b5e20;
+        }
+
+        .quiz-option.incorrect {
+            background: #ffebee;
+            border-color: #c62828;
+            color: #b71c1c;
+        }
+
+        .quiz-option-label {
+            font-weight: 700;
+            font-size: 1.2em;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .quiz-option-text {
+            flex: 1;
+        }
+
+        .quiz-explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fafafa;
+            border: 3px solid #333;
+            border-left: 5px solid #333;
+            transform: rotate(-0.1deg);
+            display: none;
+        }
+
+        .quiz-explanation.show {
+            display: block;
+        }
+
+        .quiz-explanation-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #333;
+            text-decoration: underline;
+        }
+
+        .quiz-explanation-text {
+            font-size: 1.05em;
+            line-height: 1.7;
+            color: #333;
+        }
+
+        .quiz-loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
         }
     </style>
 </head>
@@ -333,6 +648,19 @@
                             Clear Chat
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Quiz Section -->
+            <div class="section">
+                <h2 class="section-title">Practice Quiz</h2>
+                <div style="margin-bottom: 20px;">
+                    <button class="btn" id="generateQuizBtn" onclick="generateQuiz()">
+                        📝 Generate 10 Practice Questions
+                    </button>
+                </div>
+                <div class="quiz-container" id="quizContainer">
+                    <!-- Quiz questions will be added here -->
                 </div>
             </div>
 
@@ -542,12 +870,12 @@
 
         function getFeedbackButtons() {
             return `
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <span style="color: #666; font-size: 0.9em; margin-right: 10px;">Was this helpful?</span>
-                    <button onclick="this.style.background='#4caf50'; this.style.color='white'; this.nextElementSibling.style.background='#ffebee'; this.nextElementSibling.style.color='black';" 
-                            style="background: #e8f5e9; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 1.2em; transition: all 0.3s;">👍</button>
-                    <button onclick="this.style.background='#f44336'; this.style.color='white'; this.previousElementSibling.style.background='#e8f5e9'; this.previousElementSibling.style.color='black';" 
-                            style="background: #ffebee; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 1.2em; transition: all 0.3s;">👎</button>
+                <div style="display: flex; gap: 10px; align-items: center; font-family: 'Kalam', cursive;">
+                    <span style="color: #333; font-size: 1em; margin-right: 10px; font-weight: 600;">Was this helpful?</span>
+                    <button onclick="this.style.background='#333'; this.style.color='white'; this.style.borderColor='#000'; this.nextElementSibling.style.background='white'; this.nextElementSibling.style.color='#333'; this.nextElementSibling.style.borderColor='#666';" 
+                            style="background: white; border: 3px solid #333; padding: 8px 15px; border-radius: 0; cursor: pointer; font-size: 1.3em; transition: all 0.2s; transform: rotate(-0.3deg); font-family: 'Kalam', cursive; box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);">👍</button>
+                    <button onclick="this.style.background='#333'; this.style.color='white'; this.style.borderColor='#000'; this.previousElementSibling.style.background='white'; this.previousElementSibling.style.color='#333'; this.previousElementSibling.style.borderColor='#666';" 
+                            style="background: white; border: 3px solid #333; padding: 8px 15px; border-radius: 0; cursor: pointer; font-size: 1.3em; transition: all 0.2s; transform: rotate(0.3deg); font-family: 'Kalam', cursive; box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);">👎</button>
                 </div>
             `;
         }
@@ -666,6 +994,113 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Quiz functions
+        async function generateQuiz() {
+            const generateBtn = document.getElementById('generateQuizBtn');
+            const quizContainer = document.getElementById('quizContainer');
+            
+            // Disable button and show loading
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="loading"></span> Generating questions...';
+            
+            // Clear previous quiz
+            quizContainer.innerHTML = '<div class="quiz-loading">📚 Generating practice questions based on your PDFs...</div>';
+            quizContainer.classList.add('show');
+            
+            try {
+                const response = await fetch('/api/generate-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ num_questions: 10 })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.questions) {
+                    displayQuiz(data.questions);
+                } else {
+                    quizContainer.innerHTML = `<div style="padding: 20px; color: #c62828; border: 3px solid #c62828; background: #ffebee; transform: rotate(0.2deg);">Error: ${data.detail || 'Failed to generate questions'}</div>`;
+                }
+            } catch (error) {
+                quizContainer.innerHTML = `<div style="padding: 20px; color: #c62828; border: 3px solid #c62828; background: #ffebee; transform: rotate(0.2deg);">Error: ${error.message}</div>`;
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '📝 Generate 10 Practice Questions';
+            }
+        }
+        
+        function displayQuiz(questions) {
+            const quizContainer = document.getElementById('quizContainer');
+            quizContainer.innerHTML = '';
+            
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'quiz-question';
+                questionDiv.id = `question-${index}`;
+                
+                const optionsHTML = Object.entries(q.options).map(([letter, text]) => {
+                    return `
+                        <div class="quiz-option" 
+                             data-question-index="${index}"
+                             data-option="${letter}"
+                             onclick="selectOption(${index}, '${letter}', '${q.correct_answer}')">
+                            <span class="quiz-option-label">${letter}</span>
+                            <span class="quiz-option-text">${escapeHtml(text)}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                questionDiv.innerHTML = `
+                    <div class="quiz-question-number">Question ${index + 1}</div>
+                    <div class="quiz-question-text">${escapeHtml(q.question)}</div>
+                    <div class="quiz-options">
+                        ${optionsHTML}
+                    </div>
+                    <div class="quiz-explanation" id="explanation-${index}">
+                        <div class="quiz-explanation-title">💡 Explanation:</div>
+                        <div class="quiz-explanation-text">${escapeHtml(q.explanation)}</div>
+                    </div>
+                `;
+                
+                quizContainer.appendChild(questionDiv);
+            });
+            
+            // Scroll to quiz section
+            quizContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function selectOption(questionIndex, selectedOption, correctAnswer) {
+            const questionDiv = document.getElementById(`question-${questionIndex}`);
+            const options = questionDiv.querySelectorAll('.quiz-option');
+            const explanation = document.getElementById(`explanation-${questionIndex}`);
+            
+            // Disable all options
+            options.forEach(opt => {
+                opt.classList.add('disabled');
+                opt.onclick = null;
+            });
+            
+            // Mark correct and incorrect answers
+            options.forEach(opt => {
+                const optionLetter = opt.getAttribute('data-option');
+                if (optionLetter === correctAnswer) {
+                    opt.classList.add('correct');
+                } else if (optionLetter === selectedOption && optionLetter !== correctAnswer) {
+                    opt.classList.add('incorrect');
+                }
+            });
+            
+            // Show explanation
+            explanation.classList.add('show');
+            
+            // Scroll explanation into view
+            setTimeout(() => {
+                explanation.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
         }
 
         // Check system status on load
