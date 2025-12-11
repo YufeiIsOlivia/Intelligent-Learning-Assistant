@@ -137,19 +137,3 @@ See `evaluation/README.md` for detailed evaluation instructions.
   pip install -r requirements.txt
   ```
 
-## Next Steps
-
-- Explore different question types to see adaptive retrieval in action
-- Try different LLM models by specifying them in the question interface
-- Upload multiple PDFs to test cross-document capabilities
-- Generate quizzes to practice and test your understanding
-- Run evaluations to compare different LLM models (see `evaluation/README.md`)
-
-## Getting Help
-
-- Check the main `README.md` for detailed documentation
-- Review `evaluation/README.md` for evaluation instructions
-- Check the terminal output for error messages
-- Verify your API keys and quotas
-
-Enjoy learning with your Intelligent Learning Assistant! 🚀
